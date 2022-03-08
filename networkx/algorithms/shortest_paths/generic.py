@@ -164,7 +164,13 @@ def shortest_path(G, source=None, target=None, weight=None, method="dijkstra"):
             if method == "unweighted":
                 paths = nx.bidirectional_shortest_path(G, source, target)
             elif method == "dijkstra":
-                _, paths = nx.bidirectional_dijkstra(G, source, target, weight)
+                if callable(weight) and weight.__code__.co_argcount==4:
+                    # Use traditional dijkstra if weight is piecewiseconstant function
+                    # As bidirectional search is not possible
+                    _, paths = nx.multi_source_dijkstra(G, [source], target=target, weight=weight)
+                else:
+                    # Use bidirectional dijkstra if weight normal cause faster
+                    _, paths = nx.bidirectional_dijkstra(G, source, target, weight)
             else:  # method == 'bellman-ford':
                 paths = nx.bellman_ford_path(G, source, target, weight)
     return paths

@@ -7,6 +7,7 @@ from heapq import heappush, heappop
 from itertools import count
 import networkx as nx
 from networkx.algorithms.shortest_paths.generic import _build_paths_from_predecessors
+from stepfunction import stepfunction
 
 
 __all__ = [
@@ -834,7 +835,12 @@ def _dijkstra_multisource(
         if v == target:
             break
         for u, e in G_succ[v].items():
-            cost = weight(v, u, e)
+            if weight.__code__.co_argcount==4:
+                # piecewise constant edge weight, the passsed weight function
+                # shoud be something like: lambda u,v,e,t: e.get('weight',1).get(t)
+                cost = weight(v,u,e,dist[v])
+            else:
+                cost = weight(v, u, e)
             if cost is None:
                 continue
             vu_dist = dist[v] + cost
