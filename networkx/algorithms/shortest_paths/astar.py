@@ -184,4 +184,4 @@ def astar_path_length(G, source, target, heuristic=None, weight="weight"):
 
     weight = _weight_function(G, weight)
     path = astar_path(G, source, target, heuristic, weight)
-    return sum(weight(u, v, G[u][v]) for u, v in zip(path[:-1], path[1:]))
+    return sum(weight(u, v, G[u][v]) for u, v in zip(path[:-1], path[1:])), path
