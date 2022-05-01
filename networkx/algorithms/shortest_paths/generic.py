@@ -36,7 +36,7 @@ def has_path(G, source, target):
     return True
 
 
-def shortest_path(G, source=None, target=None, weight=None, method="dijkstra"):
+def shortest_path(G, source=None, target=None, weight=None, method="dijkstra", transfer_penalty=None):
     """Compute shortest paths in the graph.
 
     Parameters
@@ -124,7 +124,7 @@ def shortest_path(G, source=None, target=None, weight=None, method="dijkstra"):
     single_source_dijkstra_path
     single_source_bellman_ford_path
     """
-    if method not in ("dijkstra", "bellman-ford"):
+    if method not in ("dijkstra", "bellman-ford", "mydijkstra"):
         # so we don't need to check in each branch later
         raise ValueError(f"method not supported: {method}")
     method = "unweighted" if weight is None else method
@@ -165,6 +165,9 @@ def shortest_path(G, source=None, target=None, weight=None, method="dijkstra"):
                 paths = nx.bidirectional_shortest_path(G, source, target)
             elif method == "dijkstra":
                 length, paths = nx.bidirectional_dijkstra(G, source, target, weight)
+                return length, paths
+            elif method == 'mydijkstra':
+                length, paths = nx.mydijkstra(G, source, weight, transfer_penalty, target=target)
                 return length, paths
             else:  # method == 'bellman-ford':
                 paths = nx.bellman_ford_path(G, source, target, weight)

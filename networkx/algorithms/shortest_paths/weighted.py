@@ -35,6 +35,7 @@ __all__ = [
     "find_negative_cycle",
     "goldberg_radzik",
     "johnson",
+    "mydijkstra",
 ]
 
 
@@ -862,6 +863,111 @@ def _dijkstra_multisource(
     # by the caller via the pred and paths objects passed as arguments.
     return dist
 
+def mydijkstra(
+    G, source, weight, transfer_penalty, cutoff=None, target=None
+):
+    """Uses Dijkstra's algorithm to find shortest weighted paths adapted to my
+    multimodal graph where transfer penalties should be taken into account when
+    user changes mode. Penalties can't be added on the graph attributes directly
+    since the presence of a penalty or not depends on the path taken till then.
+
+    Parameters
+    ----------
+    G : NetworkX graph
+
+    source : node label
+        Starting node for path. All paths computed by this function will
+        start from that node.
+
+    weight: function
+        Function with (u, v, data) input that returns that edges weight
+
+    transfer_penalty: float, value of the transfer penalty, i.e. the additional
+        weight to add to link cost when user changes mode.
+
+    target : node label, optional
+        Ending node for path. Search is halted when target is found.
+
+    cutoff : integer or float, optional
+        Length (sum of edge weights) at which the search is stopped.
+        If cutoff is provided, only return paths with summed weight <= cutoff.
+
+    Returns
+    -------
+    distance : dictionary
+        A mapping from node to shortest distance to that node from one
+        of the source nodes.
+
+    shortest_path: list of node forming the shortest path found by the algorithm
+
+    Raises
+    ------
+    NodeNotFound
+        If any of `sources` is not in `G`.
+
+    """
+    G_succ = G._succ if G.is_directed() else G._adj
+    weight = _weight_function(G, weight)
+
+    push = heappush
+    pop = heappop
+    dist = {}  # dictionary of final distances
+    bool = {} # dictionary of final bools
+              # bool specifies if shortest path currently associated with node comprises
+              # car, av or transit edges as transfer penalty should be counted when traveler
+              # changes mode (walk is not considered to be a transfer penalty generating mode)
+    pred = {} # dict to store the predecessor keyed by that node
+    seen = {}
+    # fringe is heapq with 3-tuples (distance,c,node)
+    # use the count c to avoid comparing nodes (may not be able to)
+    c = count()
+    fringe = [] # list of labeled nodes
+    seen[source] = 0
+    bool[source] = 0
+    push(fringe, (0, next(c), source))
+    while fringe:
+        (d, _, v) = pop(fringe)
+        if v in dist:
+            continue  # already searched this node
+        dist[v] = d # v status set to finished
+        if v == target:
+            break # arrived to target node, stop search
+        for u, e in G_succ[v].items():
+            vu_bool = min(1, bool[v] + (e.get('mode',1) in ['av','car','train','subway','bhns','bus']))
+            cost = weight(v, u, e) + (e.get('mode',1) in ['pick-up','board']) * vu_bool * transfer_penalty
+            if cost is None:
+                continue
+            vu_dist = dist[v] + cost
+            if cutoff is not None:
+                if vu_dist > cutoff:
+                    continue
+            if u in dist:
+                u_dist = dist[u]
+                u_bool = bool[u]
+                if vu_dist < u_dist:
+                    raise ValueError("Contradictory paths found:", "negative weights?")
+                elif vu_dist == u_dist and vu_bool < u_bool:
+                    # Another path of same weight till u has been found, replace
+                    # predecessor only if bool is lower, cause to find optimal
+                    # path we have to keep bool to 0 as long as possible since
+                    # bool=1 is synonym to potential higher costs on next edges
+                    bool[u] = vu_bool
+                    pred[u] = v
+            elif u not in seen or vu_dist < seen[u]:
+                seen[u] = vu_dist
+                bool[u] = vu_bool
+                push(fringe, (vu_dist, next(c), u))
+                pred[u] = v
+            elif vu_dist == seen[u] and vu_bool < bool[u]:
+                    bool[u] = vu_bool
+                    pred[u] = v
+
+    sp = [target]
+    while pred[sp[0]] != source:
+        sp.insert(0, pred[sp[0]])
+    sp.insert(0, source)
+
+    return dist[target], sp
 
 def dijkstra_predecessor_and_distance(G, source, cutoff=None, weight="weight"):
     """Compute weighted shortest path length and predecessors.
