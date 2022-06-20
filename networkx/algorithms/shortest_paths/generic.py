@@ -36,7 +36,8 @@ def has_path(G, source, target):
     return True
 
 
-def shortest_path(G, source=None, target=None, weight=None, method="dijkstra", transfer_penalty=None):
+def shortest_path(G, source=None, target=None, weight=None, method="dijkstra", transfer_penalty=None,
+    apply_transfer_penalty_initially=None):
     """Compute shortest paths in the graph.
 
     Parameters
@@ -167,7 +168,10 @@ def shortest_path(G, source=None, target=None, weight=None, method="dijkstra", t
                 length, paths = nx.bidirectional_dijkstra(G, source, target, weight)
                 return length, paths
             elif method == 'mydijkstra':
-                length, paths = nx.mydijkstra(G, source, weight, transfer_penalty, target=target)
+                assert transfer_penalty is not None and apply_transfer_penalty_initially is not None, \
+                    'Parameters transfer_penalty and apply_transfer_penalty_initially are mandatory for mydijkstra'
+                length, paths = nx.mydijkstra(G, source, weight, transfer_penalty,
+                    apply_transfer_penalty_initially, target=target)
                 return length, paths
             else:  # method == 'bellman-ford':
                 paths = nx.bellman_ford_path(G, source, target, weight)

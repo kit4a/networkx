@@ -864,7 +864,7 @@ def _dijkstra_multisource(
     return dist
 
 def mydijkstra(
-    G, source, weight, transfer_penalty, cutoff=None, target=None
+    G, source, weight, transfer_penalty, apply_transfer_penalty_initially, cutoff=None, target=None
 ):
     """Uses Dijkstra's algorithm to find shortest weighted paths adapted to my
     multimodal graph where transfer penalties should be taken into account when
@@ -884,6 +884,9 @@ def mydijkstra(
 
     transfer_penalty: float, value of the transfer penalty, i.e. the additional
         weight to add to link cost when user changes mode.
+
+    apply_transfer_penalty_initially: bool, specify if transfer penalty should be
+        applied from source.
 
     target : node label, optional
         Ending node for path. Search is halted when target is found.
@@ -923,7 +926,7 @@ def mydijkstra(
     c = count()
     fringe = [] # list of labeled nodes
     seen[source] = 0
-    bool[source] = 0
+    bool[source] = apply_transfer_penalty_initially
     push(fringe, (0, next(c), source))
     while fringe:
         (d, _, v) = pop(fringe)
